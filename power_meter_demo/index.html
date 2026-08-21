@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlipperOne Power Meter</title>
+
+<style>
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/Inter-var.woff2") format("woff2");
+    font-weight: 100 900;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "HaxrCorp4090";
+    /* pixel font: 1 device px = 64 units, native size is 16px */
+    src: url("fonts/HaxrCorp4090-FlipCTL.ttf") format("truetype");
+  }
+  @font-face {
+    font-family: "Born2bSporty";
+    /* pixel font: 1 device px = 64 units, native size is 16px */
+    src: url("fonts/Born2bSportyV2-FlipCTL.ttf") format("truetype");
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    font-family: "Inter", -apple-system, sans-serif;
+    color: #fff;
+    overflow-x: hidden;
+  }
+
+  #device {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #stack {
+    --frame-x: 28px;
+    --frame-y: 52px;
+    --frame-w: 1777px;
+    position: absolute;
+    /* anchored so the screen's left edge sits 150px from the window edge:
+       screen renders 512px wide (256 * 2), centered on the anchor */
+    left: calc(406px + var(--frame-x));
+    top: calc(50% + var(--frame-y));
+    width: var(--frame-w);
+    transform: translate(-50%, -50%);
+    z-index: 1;
+  }
+  #frame {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .layer.on { opacity: 1; }
+
+  #screen {
+    /* logical canvas is 256x144, shown scaled up; children are laid out
+       in native screen pixels. Anchored to the center of #device in px,
+       same as #stack, so the frame and the screen never drift apart */
+    position: absolute;
+    left: 406px; /* screen left edge = 406 - 256 = 150px from the window edge */
+    top: 50%;
+    z-index: 0; /* behind the frame, visible through the LCD window */
+    transform: translate(-50%, -50%) scale(2);
+    width: 256px;
+    height: 144px;
+    background: #fff;
+    image-rendering: pixelated;
+    overflow: hidden;
+  }
+  #S_rect {
+    position: absolute;
+    left: 214px;
+    top: 6px;
+    width: 34px;
+    height: 11px;
+    background: #000;
+  }
+  #S_rect_top, #S_rect_bottom {
+    position: absolute;
+    left: 215px;
+    width: 32px;
+    height: 1px;
+    background: #000;
+  }
+  #S_rect_top { top: 5px; }
+  #S_rect_bottom { top: 17px; }
+  .pct-layer {
+    position: absolute;
+    inset: 0;
+    font-family: "HaxrCorp4090", monospace;
+    font-size: 16px;
+    line-height: 1;
+    color: #000;
+    -webkit-font-smoothing: none;
+    font-smooth: never;
+  }
+  .pct-layer span {
+    position: absolute;
+    white-space: nowrap;
+  }
+  #S_pct_white { color: #fff; }
+  #S_power_off, #S_discharge, #S_version {
+    position: absolute;
+    left: 5px;
+    top: 4px;
+    font-family: "HaxrCorp4090", monospace;
+    font-size: 16px;
+    line-height: 1;
+    color: #AAAAAA;
+    white-space: nowrap;
+    -webkit-font-smoothing: none;
+  }
+  #S_discharge {
+    left: 137px;
+    color: #000;
+  }
+  #S_discharge.out {
+    /* rides fully off the right edge when the charger connects */
+    animation: discharge-out 0.2s steps(119, end) forwards;
+  }
+  @keyframes discharge-out {
+    from { left: 137px; }
+    to { left: 256px; }
+  }
+  #S_version {
+    top: 112px;
+  }
+  .x-down {
+    position: relative;
+    top: 1px;
+  }
+  .no-pd {
+    color: #D4D4D4;
+  }
+  #S_usbc1_status {
+    position: absolute;
+    right: 5px;
+    top: 32px;
+    font-family: "HaxrCorp4090", monospace;
+    font-size: 16px;
+    line-height: 1;
+    color: #AAAAAA;
+    white-space: nowrap;
+    -webkit-font-smoothing: none;
+  }
+  #S_battery_bg, #S_info_group {
+    visibility: hidden;
+  }
+  #S_info_group {
+    position: absolute;
+    inset: 0;
+  }
+  #S_info_content {
+    /* battery_info plate together with battery_stat; move this to move both.
+       fixed 256px width: an inset-based width would squeeze the image */
+    position: absolute;
+    top: 0;
+    left: 6px;
+    width: 256px;
+    height: 144px;
+  }
+  /* in output (discharging) mode the plates sit 5px further right */
+  #S_info_group.shift #S_info_content { left: 11px; }
+  #S_info_group.shift #S_battery_stat { left: 3px; }
+  #S_battery_bg.shift { margin-left: 15px; }
+  #S_battery_stat {
+    position: absolute;
+    inset: 0;
+  }
+  #S_input_text, #S_until_full {
+    position: absolute;
+    left: 98px;
+    top: -1px;
+    font-family: "HaxrCorp4090", monospace;
+    font-size: 16px;
+    line-height: 1;
+    color: #000;
+    white-space: nowrap;
+    -webkit-font-smoothing: none;
+  }
+  #S_until_full {
+    top: 10px;
+  }
+  /* the lone "Fully charged" line sits 4px lower */
+  #S_input_text.fully {
+    top: 3px;
+  }
+  #S_charge_pct {
+    position: absolute;
+    top: 3px;
+    right: 44px; /* right edge at x = 212, right-aligned */
+    font-family: "Born2bSporty", monospace;
+    font-size: 16px;
+    line-height: 1;
+    color: #fff;
+    white-space: nowrap;
+    -webkit-font-smoothing: none;
+  }
+  #S_battery_bg.in, #S_info_group.in {
+    visibility: visible;
+    /* animate `left` in 84 whole-pixel steps: unlike transform it is
+       re-rendered on the pixel grid every step, so nothing blurs */
+    animation: bg-slide 0.2s steps(84, end) forwards;
+  }
+  @keyframes bg-slide {
+    from { left: 84px; }
+    to { left: 0; }
+  }
+  #screen::after {
+    /* orange backlight multiplied over the white screen and the UI layers */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #FF8200;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: 10;
+  }
+  #screen img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+  .layer.on.blink {
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink {
+    0%, 49.99% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  #panel {
+    flex: none;
+    align-self: stretch; /* background runs the full viewport height */
+    width: 380px;
+    padding: 40px;
+    margin-left: -42%;
+    position: relative;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.8); /* dims the flipper frame when it overlaps */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 28px;
+  }
+
+  .slider {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .slider .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .head-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .slider label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .slider .value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #aaa;
+    font-variant-numeric: tabular-nums;
+    min-width: 56px;
+    text-align: right;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 24px;
+    background: transparent;
+    cursor: pointer;
+    --fill: 0%;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right, #FF8200 var(--fill), #333 var(--fill));
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    margin-top: -7px;
+    border-radius: 50%;
+    background: #fff;
+  }
+  input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: #333;
+  }
+  input[type="range"]::-moz-range-progress {
+    height: 4px;
+    border-radius: 2px;
+    background: #FF8200;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .slider .bounds {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 500;
+    color: #777;
+    margin-top: -4px;
+  }
+  .slider .track-wrap {
+    position: relative;
+  }
+  .slider .limiter {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 3px;
+    height: 22px;
+    border-radius: 1.5px;
+    background: #999;
+    pointer-events: none;
+  }
+  .slider .limiter.hidden { display: none; }
+  .slider .marker {
+    position: absolute;
+    top: 19px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: ew-resize;
+    touch-action: none;
+    user-select: none;
+    z-index: 2;
+  }
+  .slider .marker .tail {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 8px solid #414144;
+  }
+  .slider .marker .bubble {
+    background: #414144;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .checkbox input {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    background: #333;
+    position: relative;
+    cursor: pointer;
+    transition: background 150ms ease;
+    flex: none;
+  }
+  .checkbox input::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 150ms ease;
+  }
+  .checkbox input:checked { background: #FF8200; }
+  .checkbox input:checked::after { left: 19px; }
+
+  .seg-row {
+    display: flex;
+    gap: 12px;
+  }
+  .seg {
+    display: flex;
+    background: #2a2a2d;
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .seg button {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8a8a8e;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 16px;
+    cursor: pointer;
+  }
+  .seg button.active {
+    background: #FF8200;
+    color: #fff;
+  }
+
+  #errorBtn {
+    align-self: stretch;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: #2a2a2d;
+    border: 1px solid #4a4a4e;
+    border-radius: 8px;
+    padding: 9px 22px;
+    cursor: pointer;
+  }
+  #errorBtn.active {
+    background: #d02020;
+    border-color: #d02020;
+  }
+</style>
+</head>
+<body>
+
+<div id="device">
+  <div id="stack">
+    <img id="frame" src="UI_source/flipper_frame.png" alt="FlipperOne frame">
+    <img class="layer" id="L_plug" src="UI_source/plug.png" alt="">
+    <img class="layer" id="L_plug_yellow" src="UI_source/plug_yellow.png" alt="">
+    <img class="layer" id="L_chg1" src="UI_source/charging_1.png" alt="">
+    <img class="layer" id="L_chg2" src="UI_source/charging_2.png" alt="">
+    <img class="layer" id="L_chg3" src="UI_source/charging_3.png" alt="">
+    <img class="layer" id="L_chg4" src="UI_source/charging_4.png" alt="">
+    <img class="layer" id="L_bat_center" src="UI_source/battery_center.png" alt="">
+    <img class="layer" id="L_bat_outline" src="UI_source/battery_outline.png" alt="">
+    <img class="layer blink" id="L_bat_yellow" src="UI_source/battery_yellow.png" alt="">
+    <img class="layer blink" id="L_bat_red_out" src="UI_source/battery_red_outline.png" alt="">
+    <img class="layer blink" id="L_bat_red" src="UI_source/battery_red.png" alt="">
+    <img class="layer" id="L_tick1" src="UI_source/battery_tick_1.png" alt="">
+    <img class="layer" id="L_tick2" src="UI_source/battery_tick_2.png" alt="">
+    <img class="layer" id="L_tick3" src="UI_source/battery_tick_3.png" alt="">
+    <img class="layer" id="L_tick4" src="UI_source/battery_tick_4.png" alt="">
+    <img class="layer" id="L_tick5" src="UI_source/battery_tick_5.png" alt="">
+    <img class="layer" id="L_tick6" src="UI_source/battery_tick_6.png" alt="">
+    <img class="layer" id="L_tick7" src="UI_source/battery_tick_7.png" alt="">
+  </div>
+  <div id="screen">
+    <div id="S_discharge">Discharge: 0.00W</div>
+    <div id="S_info_group">
+      <div id="S_info_content">
+        <img id="S_battery_info" src="UI_F1_Screen/battery_info.png" alt="">
+        <div id="S_battery_stat">
+          <div id="S_input_text">Input: 5V 2W</div>
+          <div id="S_until_full">Untill full: 2h 11m</div>
+        </div>
+      </div>
+    </div>
+    <img id="S_battery_bg" src="UI_F1_Screen/battery_bg.png" alt="">
+    <img id="S_battery_cell" src="UI_F1_Screen/battery_idle.png" alt="">
+    <img id="S_buttons" src="UI_F1_Screen/Buttons_all.png" alt="">
+    <div id="S_rect"></div>
+    <div id="S_rect_top"></div>
+    <div id="S_rect_bottom"></div>
+    <img id="S_charging_spark" src="UI_F1_Screen/battery_charging_spark.png" alt="" hidden>
+    <div id="S_charge_pct" hidden>50%</div>
+    <img id="S_battery_output" src="UI_F1_Screen/battery_0utput.png" alt="" hidden>
+    <div id="S_power_off">Power OFF in: 2h 10m 10s</div>
+    <div id="S_version">0.1.0 88f88s88 /gui-test</div>
+    <div id="S_usbc1_status" hidden>USB-C1 Power IN: no PD, 5V/4W</div>
+    <div class="pct-layer" id="S_pct_black"><span></span></div>
+    <div class="pct-layer" id="S_pct_white"><span></span></div>
+  </div>
+</div>
+
+<div id="panel">
+  <div class="slider">
+    <input type="checkbox" id="pdCheck" hidden>
+    <div class="head">
+      <label for="usbc1">USB-C1</label>
+      <span class="value" id="usbc1Value">0W</span>
+    </div>
+    <div class="seg-row">
+      <div class="seg" id="dirSeg">
+        <button data-value="in" class="active">IN</button>
+        <button data-value="out">OUT</button>
+      </div>
+      <div class="seg" id="pdSeg">
+        <button data-value="off" class="active">PD OFF</button>
+        <button data-value="on">PD ON</button>
+      </div>
+    </div>
+    <div class="track-wrap">
+      <input type="range" id="usbc1" min="0" max="36" step="1" value="0">
+      <div class="limiter" id="pdLimiter"></div>
+    </div>
+    <div class="bounds"><span>0W</span><span>36W</span></div>
+  </div>
+
+  <div class="slider">
+    <div class="head">
+      <label for="charge">Battery charge</label>
+      <span class="value" id="chargeValue">50%</span>
+    </div>
+    <input type="range" id="charge" min="0" max="100" step="1" value="50">
+    <div class="bounds"><span>0%</span><span>100%</span></div>
+  </div>
+
+  <div class="slider">
+    <div class="head">
+      <label for="usage">System consumption</label>
+      <span class="value" id="usageValue">0W</span>
+    </div>
+    <div class="track-wrap">
+      <input type="range" id="usage" min="0" max="60" step="0.01" value="0">
+      <div class="marker" id="baseMarker">
+        <div class="tail"></div>
+        <div class="bubble" id="baseValue">0.30W</div>
+      </div>
+    </div>
+    <div class="bounds"><span>0W</span><span>60W</span></div>
+  </div>
+
+  <button id="errorBtn">Error</button>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const PD_LIMIT = 15;
+  const MAX_W = 36;
+  const THUMB = 18; // thumb diameter, px
+
+  const usbc1 = document.getElementById("usbc1");
+  const usbc1Value = document.getElementById("usbc1Value");
+  const pdCheck = document.getElementById("pdCheck");
+  const pdLimiter = document.getElementById("pdLimiter");
+  const plugLayer = document.getElementById("L_plug");
+  const plugYellowLayer = document.getElementById("L_plug_yellow");
+  const chg1Layer = document.getElementById("L_chg1");
+  const chg2Layer = document.getElementById("L_chg2");
+  const chg3Layer = document.getElementById("L_chg3");
+  const chg4Layer = document.getElementById("L_chg4");
+  const batCenterLayer = document.getElementById("L_bat_center");
+  const batOutlineLayer = document.getElementById("L_bat_outline");
+  const batYellowLayer = document.getElementById("L_bat_yellow");
+  const batRedOutLayer = document.getElementById("L_bat_red_out");
+  const batRedLayer = document.getElementById("L_bat_red");
+
+  let errorState = false;
+  const tickLayers = [1, 2, 3, 4, 5, 6, 7].map(
+    (i) => document.getElementById("L_tick" + i)
+  );
+
+  function placeLimiter(el, watts) {
+    const frac = watts / (usbc1.max - usbc1.min);
+    // thumb center travels within [THUMB/2, width - THUMB/2]
+    el.style.left = `calc(${THUMB / 2}px + ${frac} * (100% - ${THUMB}px))`;
+  }
+
+  // last value set by the user directly; limits may push the slider
+  // below it, but it is restored once the limit releases
+  let desiredWatts = 0;
+
+  function currentLimit() {
+    return pdCheck.checked ? MAX_W : PD_LIMIT;
+  }
+
+  function updateUsbc1() {
+    usbc1.value = Math.min(desiredWatts, Math.floor(currentLimit()));
+    usbc1Value.textContent = usbc1.value + "W";
+    const pct = (usbc1.value - usbc1.min) / (usbc1.max - usbc1.min) * 100;
+    usbc1.style.setProperty("--fill", pct + "%");
+    // plug and chevrons indicate incoming power only, never in OUT mode
+    const watts = usbc1Dir === "in" ? +usbc1.value : 0;
+    plugLayer.classList.toggle("on", watts > 0 && pdCheck.checked);
+    plugYellowLayer.classList.toggle("on", watts > 0 && !pdCheck.checked);
+    chg1Layer.classList.toggle("on", !errorState && watts > 1);
+    chg2Layer.classList.toggle("on", !errorState && watts >= 7.5);
+    chg3Layer.classList.toggle("on", !errorState && watts >= 15);
+    chg4Layer.classList.toggle("on", !errorState && watts >= 27);
+    updateUsage();
+  }
+
+  function updateLimiter() {
+    pdLimiter.classList.toggle("hidden", pdCheck.checked);
+    placeLimiter(pdLimiter, PD_LIMIT);
+  }
+
+  const charge = document.getElementById("charge");
+  const chargeValue = document.getElementById("chargeValue");
+  const sRect = document.getElementById("S_rect");
+  const sRectTop = document.getElementById("S_rect_top");
+  const sRectBottom = document.getElementById("S_rect_bottom");
+  const pctWhiteLayer = document.getElementById("S_pct_white");
+  const dischargeEl = document.getElementById("S_discharge");
+  const sBatteryCell = document.getElementById("S_battery_cell");
+  const sChargingSpark = document.getElementById("S_charging_spark");
+  const sBatteryBg = document.getElementById("S_battery_bg");
+  const sInfoGroup = document.getElementById("S_info_group");
+  const sInputText = document.getElementById("S_input_text");
+  const sUntilFull = document.getElementById("S_until_full");
+  const powerOffEl = document.getElementById("S_power_off");
+  const BATTERY_WH = 7.2 * 3.7; // 7200 mAh at 3.7V nominal = 26.64 Wh
+  const sChargePct = document.getElementById("S_charge_pct");
+  const sBatteryOutput = document.getElementById("S_battery_output");
+  const sUsbc1Status = document.getElementById("S_usbc1_status");
+  let wasActive = false; // charging or discharging UI is on
+  let plateShown = false; // plate contents appear only after it slid in
+  sBatteryBg.addEventListener("animationend", () => {
+    plateShown = true;
+    updateUsbc1();
+  });
+  const pctLayers = [
+    document.getElementById("S_pct_black"),
+    document.getElementById("S_pct_white"),
+  ];
+  const pctSpans = [
+    document.querySelector("#S_pct_black span"),
+    document.querySelector("#S_pct_white span"),
+  ];
+
+  // battery fill geometry on the device screen, px
+  const BATT_X = 214, BATT_Y_TOP = 5, BATT_Y_BOTTOM = 18, BATT_W = 34;
+
+  function updateCharge() {
+    chargeValue.textContent = charge.value + "%";
+    const pct = (charge.value - charge.min) / (charge.max - charge.min) * 100;
+    charge.style.setProperty("--fill", pct + "%");
+    // battery fill on the device screen: 34px = 100%, whole pixels;
+    // top/bottom rows are 1px inset on each side for rounded pixel corners
+    const fillW = Math.ceil(+charge.value / 100 * 34);
+    sRect.style.width = fillW + "px";
+    // caps cover the middle 32 columns (x 215..246) of the 34px rect:
+    // their right edge follows the fill, clipped 1px short of each end
+    const capW = Math.min(Math.max(fillW - 1, 0), 32);
+    sRectTop.style.width = capW + "px";
+    sRectBottom.style.width = capW + "px";
+    positionPctDigits();
+    updateLimiter();
+    updateUsbc1();
+  }
+
+  // percent number centered in the battery: black copy over the empty
+  // part, white copy clipped to the black fill, so it is always readable.
+  // must run while the digits are visible: offsetWidth of a hidden
+  // element is 0 and the centering breaks
+  function positionPctDigits() {
+    const fillW = Math.ceil(+charge.value / 100 * 34);
+    pctSpans.forEach((s) => { s.textContent = charge.value; });
+    // a hidden layer measures as 0 wide: unhide just for the measurement
+    const wasHidden = pctLayers[0].hidden;
+    if (wasHidden) pctLayers.forEach((l) => { l.hidden = false; });
+    const textW = pctSpans[0].offsetWidth;
+    if (wasHidden) pctLayers.forEach((l) => { l.hidden = true; });
+    const textX = BATT_X + Math.round((BATT_W - textW) / 2);
+    pctSpans.forEach((s) => {
+      s.style.left = textX + "px";
+      s.style.top = "4px";
+    });
+    pctWhiteLayer.style.clipPath =
+      `inset(${BATT_Y_TOP}px ${256 - (BATT_X + fillW)}px ${144 - BATT_Y_BOTTOM}px ${BATT_X}px)`;
+  }
+
+  // threshold above which the battery is triggered, set by dragging the marker
+  let baseConsumptionW = 0.3;
+
+  const usage = document.getElementById("usage");
+  const usageValue = document.getElementById("usageValue");
+  const baseMarker = document.getElementById("baseMarker");
+  const baseValue = document.getElementById("baseValue");
+
+  function updateUsage() {
+    usageValue.textContent = (+usage.value).toFixed(2) + "W";
+    const pct = (usage.value - usage.min) / (usage.max - usage.min) * 100;
+    usage.style.setProperty("--fill", pct + "%");
+    // battery discharge indication: the battery covers what the USB input
+    // does not, triggered above the threshold.
+    // ticks 1-4 stack; above 8W the pre-rendered 5/6/7 replace them
+    // in OUT mode the port powers an external load: nothing comes in,
+    // and its watts simply add to the system consumption
+    const rawWatts = +usbc1.value;
+    const watts = usbc1Dir === "in" ? rawWatts : 0;
+    const usageW = +usage.value + (usbc1Dir === "out" ? rawWatts : 0);
+    const full = +charge.value === 100;
+    // USB-C1 status line, right-aligned
+    const portVolts = rawWatts <= 15 ? 5 : rawWatts <= 27 ? 9 : 12;
+    sUsbc1Status.hidden = rawWatts === 0;
+    sUsbc1Status.innerHTML =
+      `USB-C1: ${pdCheck.checked ? "PD ver2" : '<span class="no-pd"><span class="x-down">×</span> PD</span>'} ` +
+      `${portVolts}V/${rawWatts}W`;
+    // actually charging: plugged in and the input covers consumption;
+    // the error state kills all charging UI
+    const charging = watts > 0 && usageW <= watts && !errorState;
+    // the base consumption threshold only applies when running on battery;
+    // with a cable plugged in any deficit counts as battery draw
+    const excess = usageW - watts - (watts > 0 ? 0 : baseConsumptionW);
+    // battery draining above the threshold shows its own info UI;
+    // unlike charging it keeps working in the error state
+    const discharging = excess > 0;
+    const active = charging || discharging;
+    // screen battery icon: idle by default, empty cell while charging;
+    // while charging the percent digits give way to the spark, while
+    // discharging they stay in place
+    sBatteryCell.src = active
+      ? "UI_F1_Screen/battery_cell_empty.png"
+      : "UI_F1_Screen/battery_idle.png";
+    sChargingSpark.hidden = !charging;
+    const pctBecameVisible = pctLayers[0].hidden && !charging;
+    pctLayers.forEach((l) => { l.hidden = charging; });
+    if (pctBecameVisible) positionPctDigits();
+    // on the bg plate: charge percent when charging, output icon otherwise
+    sChargePct.hidden = !(charging && plateShown);
+    sChargePct.textContent = charge.value + "%";
+    sBatteryOutput.hidden = !(discharging && plateShown);
+    sBatteryBg.classList.toggle("shift", discharging);
+    sInfoGroup.classList.toggle("shift", discharging);
+    // info strip lines
+    if (discharging) {
+      const shownOut = usageW > 9
+        ? Math.round(usageW)
+        : parseFloat(usageW.toFixed(2));
+      sInputText.textContent = full ? "Fully charged" : `Output: ${shownOut}W`;
+      sInputText.classList.toggle("fully", full);
+      // time until empty, from the power the battery actually delivers
+      const drain = usageW - watts;
+      const hoursLeft = (charge.value / 100) * BATTERY_WH / drain;
+      const totalMin = Math.ceil(hoursLeft * 60);
+      const h = Math.floor(totalMin / 60);
+      sUntilFull.textContent =
+        `Left: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
+    } else {
+      const volts = watts <= 15 ? 5 : watts <= 27 ? 9 : 12;
+      // the battery only receives what the system does not consume;
+      // above 9W the fraction is noise, show whole watts
+      const intoBattery = Math.max(0, watts - usageW);
+      const shownW = intoBattery > 9
+        ? Math.round(intoBattery)
+        : parseFloat(intoBattery.toFixed(2));
+      sInputText.textContent = full ? "Fully charged" : `Input: ${volts}V ${shownW}W`;
+      sInputText.classList.toggle("fully", full);
+      if (full) {
+        sUntilFull.textContent = "";
+      } else if (intoBattery > 0) {
+        const hoursLeft = (1 - charge.value / 100) * BATTERY_WH / intoBattery;
+        const totalMin = Math.ceil(hoursLeft * 60);
+        const h = Math.floor(totalMin / 60);
+        sUntilFull.textContent =
+          `Untill full: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
+      } else {
+        sUntilFull.textContent = "Untill full: --";
+      }
+    }
+    // the Power OFF countdown is hidden while the info UI is up
+    powerOffEl.hidden = active;
+    if (active && !wasActive) {
+      plateShown = false;
+      sBatteryBg.classList.remove("in");
+      sInfoGroup.classList.remove("in");
+      dischargeEl.classList.remove("out");
+      void sBatteryBg.offsetWidth; // restart the animations
+      sBatteryBg.classList.add("in");
+      sInfoGroup.classList.add("in");
+      dischargeEl.classList.add("out");
+    } else if (!active) {
+      plateShown = false;
+      sBatteryBg.classList.remove("in");
+      sInfoGroup.classList.remove("in");
+      dischargeEl.classList.remove("out");
+    }
+    wasActive = active;
+    // critically low charge -> blinking red outline, unless charging
+    const critical = +charge.value < 5 && !charging;
+    // plugged in but the input does not cover consumption -> whole icon yellow
+    const yellow = watts > 0 && usageW > watts;
+    // what actually flows out of the battery
+    dischargeEl.textContent =
+      "Discharge: " + Math.max(0, usageW - watts).toFixed(2) + "W";
+    batRedLayer.classList.toggle("on", errorState);
+    batRedOutLayer.classList.toggle("on", critical && !errorState);
+    batYellowLayer.classList.toggle("on", yellow && !critical && !errorState);
+    // the green outline accompanies the center bolt whenever it is lit
+    const centerOn = watts > 0 && !full && !yellow && !critical && !errorState;
+    batCenterLayer.classList.toggle("on", centerOn);
+    batOutlineLayer.classList.toggle("on",
+      centerOn || (excess > 0 && !yellow && !critical && !errorState));
+    const ticksOn = !errorState;
+    tickLayers[0].classList.toggle("on", ticksOn && excess > 0 && excess <= 8);
+    tickLayers[1].classList.toggle("on", ticksOn && excess > 2 && excess <= 8);
+    tickLayers[2].classList.toggle("on", ticksOn && excess > 4 && excess <= 8);
+    tickLayers[3].classList.toggle("on", ticksOn && excess > 6 && excess <= 8);
+    tickLayers[4].classList.toggle("on", ticksOn && excess > 8 && excess <= 12);
+    tickLayers[5].classList.toggle("on", ticksOn && excess > 12 && excess <= 24);
+    tickLayers[6].classList.toggle("on", ticksOn && excess > 24);
+  }
+
+  function placeBaseMarker() {
+    const frac = baseConsumptionW / (usage.max - usage.min);
+    baseMarker.style.left = `calc(${THUMB / 2}px + ${frac} * (100% - ${THUMB}px))`;
+    baseValue.textContent = baseConsumptionW.toFixed(2) + "W";
+  }
+
+  baseMarker.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    baseMarker.setPointerCapture(e.pointerId);
+  });
+  baseMarker.addEventListener("pointermove", (e) => {
+    if (!baseMarker.hasPointerCapture(e.pointerId)) return;
+    const rect = baseMarker.parentElement.getBoundingClientRect();
+    const usable = rect.width - THUMB;
+    const frac = Math.min(Math.max((e.clientX - rect.left - THUMB / 2) / usable, 0), 1);
+    baseConsumptionW = Math.round(frac * (usage.max - usage.min) * 100) / 100;
+    placeBaseMarker();
+    updateUsage();
+  });
+
+  usage.addEventListener("input", updateUsbc1);
+  placeBaseMarker();
+
+  // USB-C1 direction and PD segmented switches
+  let usbc1Dir = "in";
+  function wireSeg(id, onChange) {
+    const seg = document.getElementById(id);
+    seg.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        seg.querySelectorAll("button").forEach((b) =>
+          b.classList.toggle("active", b === btn));
+        onChange(btn.dataset.value);
+      });
+    });
+  }
+  wireSeg("dirSeg", (v) => {
+    usbc1Dir = v;
+    updateUsbc1();
+  });
+  wireSeg("pdSeg", (v) => {
+    pdCheck.checked = v === "on";
+    pdCheck.dispatchEvent(new Event("change"));
+  });
+
+  const errorBtn = document.getElementById("errorBtn");
+  errorBtn.addEventListener("click", () => {
+    errorState = !errorState;
+    errorBtn.classList.toggle("active", errorState);
+    updateUsbc1();
+  });
+  usbc1.addEventListener("input", () => {
+    desiredWatts = Math.min(+usbc1.value, Math.floor(currentLimit()));
+    updateUsbc1();
+  });
+  charge.addEventListener("input", updateCharge);
+  pdCheck.addEventListener("change", () => {
+    updateLimiter();
+    updateUsbc1();
+  });
+  // snap the vertical anchor to a whole pixel, otherwise a 50% top on an
+  // odd-height window puts the whole screen on a half pixel and blurs it
+  const device = document.getElementById("device");
+  const screenEl = document.getElementById("screen");
+  const stackEl = document.getElementById("stack");
+  function snapAnchor() {
+    const cy = Math.round(device.clientHeight / 2);
+    screenEl.style.top = cy + "px";
+    stackEl.style.top = `calc(${cy}px + var(--frame-y))`;
+  }
+  window.addEventListener("resize", snapAnchor);
+  snapAnchor();
+
+  updateLimiter();
+  updateUsbc1();
+  updateCharge();
+  updateUsage();
+  // re-measure the percent text once the pixel font is loaded
+  document.fonts.ready.then(updateCharge);
+
+  // "Power OFF" countdown
+  let powerOffSeconds = 2 * 3600 + 10 * 60 + 10;
+  function renderPowerOff() {
+    const h = Math.floor(powerOffSeconds / 3600);
+    const m = Math.floor((powerOffSeconds % 3600) / 60);
+    const s = powerOffSeconds % 60;
+    powerOffEl.textContent =
+      `Power OFF in: ${h > 0 ? h + "h " : ""}${m}m ${s}s`;
+  }
+  setInterval(() => {
+    if (powerOffSeconds > 0) {
+      powerOffSeconds--;
+      renderPowerOff();
+    }
+  }, 1000);
+  renderPowerOff();
+})();
+</script>
+</body>
+</html>
