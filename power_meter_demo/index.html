@@ -40,6 +40,12 @@
     height: 100vh;
     overflow: hidden;
   }
+  #scene {
+    /* holds the frame and the screen; scaled as one unit on mobile */
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
+  }
   #stack {
     --frame-x: 28px;
     --frame-y: 52px;
@@ -453,11 +459,37 @@
     background: #d02020;
     border-color: #d02020;
   }
+
+  @media (max-width: 768px) {
+    body {
+      flex-direction: column;
+      height: 100dvh;
+      min-height: 0;
+      overflow: hidden;
+    }
+    #device {
+      flex: none;
+      width: 100%;
+      /* height is set by JS to fit the scaled device */
+    }
+    #panel {
+      flex: 1;
+      min-height: 0;
+      align-self: stretch;
+      width: 100%;
+      margin-left: 0;
+      padding: 12px 24px 20px;
+      gap: 20px;
+      background: transparent;
+      justify-content: flex-start;
+    }
+  }
 </style>
 </head>
 <body>
 
 <div id="device">
+  <div id="scene">
   <div id="stack">
     <img id="frame" src="UI_source/flipper_frame.png" alt="FlipperOne frame">
     <img class="layer" id="L_plug" src="UI_source/plug.png" alt="">
@@ -504,6 +536,7 @@
     <div id="S_usbc1_status" hidden>USB-C1 Power IN: no PD, 5V/4W</div>
     <div class="pct-layer" id="S_pct_black"><span></span></div>
     <div class="pct-layer" id="S_pct_white"><span></span></div>
+  </div>
   </div>
 </div>
 
@@ -841,8 +874,10 @@
   baseMarker.addEventListener("pointermove", (e) => {
     if (!baseMarker.hasPointerCapture(e.pointerId)) return;
     const rect = baseMarker.parentElement.getBoundingClientRect();
-    const usable = rect.width - THUMB;
-    const frac = Math.min(Math.max((e.clientX - rect.left - THUMB / 2) / usable, 0), 1);
+    // rect is in zoomed pixels; scale the thumb size to match
+    const thumb = THUMB * (rect.width / baseMarker.parentElement.offsetWidth);
+    const usable = rect.width - thumb;
+    const frac = Math.min(Math.max((e.clientX - rect.left - thumb / 2) / usable, 0), 1);
     baseConsumptionW = Math.round(frac * (usage.max - usage.min) * 100) / 100;
     placeBaseMarker();
     updateUsage();
@@ -888,12 +923,30 @@
     updateUsbc1();
   });
   // snap the vertical anchor to a whole pixel, otherwise a 50% top on an
-  // odd-height window puts the whole screen on a half pixel and blurs it
+  // odd-height window puts the whole screen on a half pixel and blurs it.
+  // on mobile the whole scene is scaled to the viewport width instead,
+  // with the device pinned to the top
   const device = document.getElementById("device");
+  const scene = document.getElementById("scene");
   const screenEl = document.getElementById("screen");
   const stackEl = document.getElementById("stack");
+  // device visual bounds in scene coordinates (anchor cy = 470)
+  const SCENE = { cy: 470, top: 200, bottom: 803, right: 1127 };
   function snapAnchor() {
-    const cy = Math.round(device.clientHeight / 2);
+    let cy;
+    if (window.innerWidth <= 768) {
+      const k = device.clientWidth / SCENE.right;
+      const pad = 16;
+      device.style.height =
+        Math.round((SCENE.bottom - SCENE.top) * k + pad * 2) + "px";
+      scene.style.transform =
+        `scale(${k}) translate(0px, ${pad / k - SCENE.top}px)`;
+      cy = SCENE.cy;
+    } else {
+      device.style.height = "";
+      scene.style.transform = "";
+      cy = Math.round(device.clientHeight / 2);
+    }
     screenEl.style.top = cy + "px";
     stackEl.style.top = `calc(${cy}px + var(--frame-y))`;
   }
