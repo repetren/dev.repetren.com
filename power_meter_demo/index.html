@@ -804,18 +804,22 @@
     sInfoGroup.classList.toggle("shift", discharging);
     // info strip lines
     if (discharging) {
+      // "Fully charged" only while a cable is plugged in; on battery
+      // alone the discharge info shows even at 100%
+      const showFully = full && watts > 0;
       const shownOut = usageW > 9
         ? Math.round(usageW)
         : parseFloat(usageW.toFixed(2));
-      sInputText.textContent = full ? "Fully charged" : `Output: ${shownOut}W`;
-      sInputText.classList.toggle("fully", full);
+      sInputText.textContent = showFully ? "Fully charged" : `Output: ${shownOut}W`;
+      sInputText.classList.toggle("fully", showFully);
       // time until empty, from the power the battery actually delivers
       const drain = usageW - watts;
       const hoursLeft = (charge.value / 100) * BATTERY_WH / drain;
       const totalMin = Math.ceil(hoursLeft * 60);
       const h = Math.floor(totalMin / 60);
-      sUntilFull.textContent =
-        `Left: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
+      sUntilFull.textContent = showFully
+        ? ""
+        : `Left: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
     } else {
       const volts = watts <= 15 ? 5 : watts <= 27 ? 9 : 12;
       // the battery only receives what the system does not consume;
