@@ -483,6 +483,24 @@
       background: transparent;
       justify-content: flex-start;
     }
+    /* bigger touch targets */
+    input[type="range"] {
+      height: 44px;
+      touch-action: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      width: 28px;
+      height: 28px;
+      margin-top: -12px;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+    }
+    .slider .marker .bubble {
+      font-size: 15px;
+      padding: 6px 12px;
+    }
   }
 </style>
 </head>
@@ -491,25 +509,25 @@
 <div id="device">
   <div id="scene">
   <div id="stack">
-    <img id="frame" src="UI_source/flipper_frame.png" alt="FlipperOne frame">
-    <img class="layer" id="L_plug" src="UI_source/plug.png" alt="">
-    <img class="layer" id="L_plug_yellow" src="UI_source/plug_yellow.png" alt="">
-    <img class="layer" id="L_chg1" src="UI_source/charging_1.png" alt="">
-    <img class="layer" id="L_chg2" src="UI_source/charging_2.png" alt="">
-    <img class="layer" id="L_chg3" src="UI_source/charging_3.png" alt="">
-    <img class="layer" id="L_chg4" src="UI_source/charging_4.png" alt="">
-    <img class="layer" id="L_bat_center" src="UI_source/battery_center.png" alt="">
-    <img class="layer" id="L_bat_outline" src="UI_source/battery_outline.png" alt="">
-    <img class="layer blink" id="L_bat_yellow" src="UI_source/battery_yellow.png" alt="">
-    <img class="layer blink" id="L_bat_red_out" src="UI_source/battery_red_outline.png" alt="">
-    <img class="layer blink" id="L_bat_red" src="UI_source/battery_red.png" alt="">
-    <img class="layer" id="L_tick1" src="UI_source/battery_tick_1.png" alt="">
-    <img class="layer" id="L_tick2" src="UI_source/battery_tick_2.png" alt="">
-    <img class="layer" id="L_tick3" src="UI_source/battery_tick_3.png" alt="">
-    <img class="layer" id="L_tick4" src="UI_source/battery_tick_4.png" alt="">
-    <img class="layer" id="L_tick5" src="UI_source/battery_tick_5.png" alt="">
-    <img class="layer" id="L_tick6" src="UI_source/battery_tick_6.png" alt="">
-    <img class="layer" id="L_tick7" src="UI_source/battery_tick_7.png" alt="">
+    <img id="frame" src="img/flipper_frame_2048.webp" srcset="img/flipper_frame_2048.webp 2048w, img/flipper_frame_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="FlipperOne frame">
+    <img class="layer" id="L_plug" src="img/plug_2048.webp" srcset="img/plug_2048.webp 2048w, img/plug_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_plug_yellow" src="img/plug_yellow_2048.webp" srcset="img/plug_yellow_2048.webp 2048w, img/plug_yellow_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_chg1" src="img/charging_1_2048.webp" srcset="img/charging_1_2048.webp 2048w, img/charging_1_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_chg2" src="img/charging_2_2048.webp" srcset="img/charging_2_2048.webp 2048w, img/charging_2_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_chg3" src="img/charging_3_2048.webp" srcset="img/charging_3_2048.webp 2048w, img/charging_3_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_chg4" src="img/charging_4_2048.webp" srcset="img/charging_4_2048.webp 2048w, img/charging_4_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_bat_center" src="img/battery_center_2048.webp" srcset="img/battery_center_2048.webp 2048w, img/battery_center_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_bat_outline" src="img/battery_outline_2048.webp" srcset="img/battery_outline_2048.webp 2048w, img/battery_outline_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer blink" id="L_bat_yellow" src="img/battery_yellow_2048.webp" srcset="img/battery_yellow_2048.webp 2048w, img/battery_yellow_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer blink" id="L_bat_red_out" src="img/battery_red_outline_2048.webp" srcset="img/battery_red_outline_2048.webp 2048w, img/battery_red_outline_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer blink" id="L_bat_red" src="img/battery_red_2048.webp" srcset="img/battery_red_2048.webp 2048w, img/battery_red_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_tick1" src="img/battery_tick_1_2048.webp" srcset="img/battery_tick_1_2048.webp 2048w, img/battery_tick_1_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_tick2" src="img/battery_tick_2_2048.webp" srcset="img/battery_tick_2_2048.webp 2048w, img/battery_tick_2_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_tick3" src="img/battery_tick_3_2048.webp" srcset="img/battery_tick_3_2048.webp 2048w, img/battery_tick_3_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_tick4" src="img/battery_tick_4_2048.webp" srcset="img/battery_tick_4_2048.webp 2048w, img/battery_tick_4_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_tick5" src="img/battery_tick_5_2048.webp" srcset="img/battery_tick_5_2048.webp 2048w, img/battery_tick_5_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_tick6" src="img/battery_tick_6_2048.webp" srcset="img/battery_tick_6_2048.webp 2048w, img/battery_tick_6_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
+    <img class="layer" id="L_tick7" src="img/battery_tick_7_2048.webp" srcset="img/battery_tick_7_2048.webp 2048w, img/battery_tick_7_4096.webp 4096w" sizes="(max-width: 768px) 640px, 1777px" alt="">
   </div>
   <div id="screen">
     <div id="S_discharge">Discharge: 0.00W</div>
@@ -596,7 +614,8 @@
   "use strict";
   const PD_LIMIT = 15;
   const MAX_W = 36;
-  const THUMB = 18; // thumb diameter, px
+  // thumb diameter, px: larger on mobile for touch
+  const THUMB = () => (window.innerWidth <= 768 ? 28 : 18);
 
   const usbc1 = document.getElementById("usbc1");
   const usbc1Value = document.getElementById("usbc1Value");
@@ -621,8 +640,9 @@
 
   function placeLimiter(el, watts) {
     const frac = watts / (usbc1.max - usbc1.min);
-    // thumb center travels within [THUMB/2, width - THUMB/2]
-    el.style.left = `calc(${THUMB / 2}px + ${frac} * (100% - ${THUMB}px))`;
+    // thumb center travels within [thumb/2, width - thumb/2]
+    const t = THUMB();
+    el.style.left = `calc(${t / 2}px + ${frac} * (100% - ${t}px))`;
   }
 
   // last value set by the user directly; limits may push the slider
@@ -863,7 +883,8 @@
 
   function placeBaseMarker() {
     const frac = baseConsumptionW / (usage.max - usage.min);
-    baseMarker.style.left = `calc(${THUMB / 2}px + ${frac} * (100% - ${THUMB}px))`;
+    const t = THUMB();
+    baseMarker.style.left = `calc(${t / 2}px + ${frac} * (100% - ${t}px))`;
     baseValue.textContent = baseConsumptionW.toFixed(2) + "W";
   }
 
@@ -875,7 +896,7 @@
     if (!baseMarker.hasPointerCapture(e.pointerId)) return;
     const rect = baseMarker.parentElement.getBoundingClientRect();
     // rect is in zoomed pixels; scale the thumb size to match
-    const thumb = THUMB * (rect.width / baseMarker.parentElement.offsetWidth);
+    const thumb = THUMB() * (rect.width / baseMarker.parentElement.offsetWidth);
     const usable = rect.width - thumb;
     const frac = Math.min(Math.max((e.clientX - rect.left - thumb / 2) / usable, 0), 1);
     baseConsumptionW = Math.round(frac * (usage.max - usage.min) * 100) / 100;
@@ -950,7 +971,12 @@
     screenEl.style.top = cy + "px";
     stackEl.style.top = `calc(${cy}px + var(--frame-y))`;
   }
-  window.addEventListener("resize", snapAnchor);
+  window.addEventListener("resize", () => {
+    snapAnchor();
+    // thumb size differs between mobile and desktop
+    updateLimiter();
+    placeBaseMarker();
+  });
   snapAnchor();
 
   updateLimiter();
