@@ -353,34 +353,11 @@
     pointer-events: none;
   }
   .slider .limiter.hidden { display: none; }
-  .slider .marker {
-    position: absolute;
-    top: 19px;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: ew-resize;
-    touch-action: none;
-    user-select: none;
-    z-index: 2;
-  }
-  .slider .marker .tail {
-    width: 0;
-    height: 0;
-    border-left: 7px solid transparent;
-    border-right: 7px solid transparent;
-    border-bottom: 8px solid #414144;
-  }
-  .slider .marker .bubble {
-    background: #414144;
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 8px;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
+  .slider .note {
+    font-size: 12px;
+    font-weight: 500;
+    color: #777;
+    margin-top: -4px;
   }
 
   .checkbox {
@@ -497,10 +474,6 @@
       width: 28px;
       height: 28px;
     }
-    .slider .marker .bubble {
-      font-size: 15px;
-      padding: 6px 12px;
-    }
   }
 </style>
 </head>
@@ -598,12 +571,9 @@
     </div>
     <div class="track-wrap">
       <input type="range" id="usage" min="0" max="60" step="0.01" value="0">
-      <div class="marker" id="baseMarker">
-        <div class="tail"></div>
-        <div class="bubble" id="baseValue">0.30W</div>
-      </div>
     </div>
     <div class="bounds"><span>0W</span><span>60W</span></div>
+    <div class="note">Base consumption: 0.30W</div>
   </div>
 
   <button id="errorBtn">Error</button>
@@ -749,13 +719,11 @@
       `inset(${BATT_Y_TOP}px ${256 - (BATT_X + fillW)}px ${144 - BATT_Y_BOTTOM}px ${BATT_X}px)`;
   }
 
-  // threshold above which the battery is triggered, set by dragging the marker
-  let baseConsumptionW = 0.3;
+  // threshold above which the battery is triggered; fixed
+  const baseConsumptionW = 0.3;
 
   const usage = document.getElementById("usage");
   const usageValue = document.getElementById("usageValue");
-  const baseMarker = document.getElementById("baseMarker");
-  const baseValue = document.getElementById("baseValue");
 
   function updateUsage() {
     usageValue.textContent = (+usage.value).toFixed(2) + "W";
@@ -804,22 +772,19 @@
     sInfoGroup.classList.toggle("shift", discharging);
     // info strip lines
     if (discharging) {
-      // "Fully charged" only while a cable is plugged in; on battery
-      // alone the discharge info shows even at 100%
-      const showFully = full && watts > 0;
+      // discharging is plain discharging, even at 100%
       const shownOut = usageW > 9
         ? Math.round(usageW)
         : parseFloat(usageW.toFixed(2));
-      sInputText.textContent = showFully ? "Fully charged" : `Output: ${shownOut}W`;
-      sInputText.classList.toggle("fully", showFully);
+      sInputText.textContent = `Output: ${shownOut}W`;
+      sInputText.classList.remove("fully");
       // time until empty, from the power the battery actually delivers
       const drain = usageW - watts;
       const hoursLeft = (charge.value / 100) * BATTERY_WH / drain;
       const totalMin = Math.ceil(hoursLeft * 60);
       const h = Math.floor(totalMin / 60);
-      sUntilFull.textContent = showFully
-        ? ""
-        : `Left: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
+      sUntilFull.textContent =
+        `Left: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
     } else {
       const volts = watts <= 15 ? 5 : watts <= 27 ? 9 : 12;
       // the battery only receives what the system does not consume;
@@ -885,31 +850,7 @@
     tickLayers[6].classList.toggle("on", ticksOn && excess > 24);
   }
 
-  function placeBaseMarker() {
-    const frac = baseConsumptionW / (usage.max - usage.min);
-    const t = THUMB();
-    baseMarker.style.left = `calc(${t / 2}px + ${frac} * (100% - ${t}px))`;
-    baseValue.textContent = baseConsumptionW.toFixed(2) + "W";
-  }
-
-  baseMarker.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    baseMarker.setPointerCapture(e.pointerId);
-  });
-  baseMarker.addEventListener("pointermove", (e) => {
-    if (!baseMarker.hasPointerCapture(e.pointerId)) return;
-    const rect = baseMarker.parentElement.getBoundingClientRect();
-    // rect is in zoomed pixels; scale the thumb size to match
-    const thumb = THUMB() * (rect.width / baseMarker.parentElement.offsetWidth);
-    const usable = rect.width - thumb;
-    const frac = Math.min(Math.max((e.clientX - rect.left - thumb / 2) / usable, 0), 1);
-    baseConsumptionW = Math.round(frac * (usage.max - usage.min) * 100) / 100;
-    placeBaseMarker();
-    updateUsage();
-  });
-
   usage.addEventListener("input", updateUsbc1);
-  placeBaseMarker();
 
   // USB-C1 direction and PD segmented switches
   let usbc1Dir = "in";
@@ -979,7 +920,6 @@
     snapAnchor();
     // thumb size differs between mobile and desktop
     updateLimiter();
-    placeBaseMarker();
   });
   snapAnchor();
 
