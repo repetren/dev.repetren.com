@@ -531,7 +531,7 @@
       <div id="S_info_content">
         <img id="S_battery_info" src="UI_F1_Screen/battery_info.png" alt="">
         <div id="S_battery_stat">
-          <div id="S_input_text">Input: 5V 2W</div>
+          <div id="S_input_text">Charging: 5V 2W</div>
           <div id="S_until_full">Untill full: 2h 11m</div>
         </div>
       </div>
@@ -816,7 +816,7 @@
       const shownW = intoBattery > 9
         ? Math.round(intoBattery)
         : parseFloat(intoBattery.toFixed(2));
-      sInputText.textContent = full ? "Fully charged" : `Input: ${volts}V ${shownW}W`;
+      sInputText.textContent = full ? "Fully charged" : `Charging: ${volts}V ${shownW}W`;
       sInputText.classList.toggle("fully", full);
       if (full) {
         sUntilFull.textContent = "";
