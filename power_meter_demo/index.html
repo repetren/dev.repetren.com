@@ -181,9 +181,22 @@
     width: 256px;
     height: 144px;
   }
-  /* in output (discharging) mode the plates sit 5px further right */
-  #S_info_group.shift #S_info_content { left: 11px; }
+  /* charging layout, power >= 10W (whole watts): 7px right of lowpow */
+  #S_info_group:not(.shift) #S_info_content { left: 3px; }
+  #S_info_group:not(.shift) #S_battery_info { left: -5px; }
+  #S_info_group:not(.shift) #S_input_text { left: 90px; }
+  /* charging layout, power < 10W (fractional watts, longer line) */
+  #S_info_group.lowpow:not(.shift) #S_info_content { left: -5px; }
+  #S_info_group.lowpow:not(.shift) #S_battery_info { left: -5px; }
+  #S_info_group.lowpow:not(.shift) #S_input_text { left: 90px; }
+  #S_info_group.lowpow:not(.shift) #S_until_full { left: 95px; }
+  /* output (discharging) layout */
+  #S_info_group.shift #S_info_content { left: 30px; }
   #S_info_group.shift #S_battery_stat { left: 3px; }
+  /* Output line staggered 5px left of the Left line, same as
+     Charging vs Untill */
+  #S_info_group.shift #S_input_text { left: 93px; }
+  #S_battery_bg { margin-left: -1px; } /* charging position */
   #S_battery_bg.shift { margin-left: 15px; }
   #S_battery_stat {
     position: absolute;
@@ -203,9 +216,10 @@
   #S_until_full {
     top: 10px;
   }
-  /* the lone "Fully charged" line sits 4px lower */
-  #S_input_text.fully {
-    top: 3px;
+  /* the lone "Fully charged!" line is centered on the plate */
+  #S_info_group:not(.shift) #S_input_text.fully {
+    top: 4px;
+    left: 100px;
   }
   #S_charge_pct {
     position: absolute;
@@ -423,7 +437,7 @@
     color: #fff;
   }
 
-  #errorBtn {
+  #errorBtn, #copyBtn {
     align-self: stretch;
     font: inherit;
     font-size: 14px;
@@ -479,7 +493,7 @@
       padding: 5px 12px;
       border-radius: 6px;
     }
-    #errorBtn {
+    #errorBtn, #copyBtn {
       font-size: 13px;
       padding: 8px 16px;
     }
@@ -600,7 +614,21 @@
   </div>
 
   <button id="errorBtn">Error</button>
+  <button id="copyBtn">Copy UI as PNG reference</button>
 </div>
+
+<script>
+// screen UI assets inlined so the reference canvas is never tainted
+window.SCREEN_ASSETS = {
+  "Buttons_all.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAiNJREFUeAHt2u1ugyAUAFBc9v6v7LIfTVoCAlUq0HOSJasfgAKXy9YQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhrIFZreH+xlH8GF7GGPy/xupLbC8USebIDCZb0ndZh2Yqf7Zw9j9lmvfSn3ARGZelfbKYyOZsc1HZDUTm73z9sLn1PXPP3dpbffoBIEJrTjoagJAy/W9rJYF/FsyCPwEYi2T6JOD4uzeP84Kan9PfS499xbefzctGcxRX1m1K/wGRnRmsj8P/C1RXm3ZuXvebdcWynXH58+8B3+8qyAAtHlMri1zPHXuqnpry72y/jOraM2ErykjbssWfd7Da8axR3XvhfJSZX5N8BAA0nJ72KNVtHWFPap7lAF4dTtKQSE3YVPvPi7rqOz43ri8EMZ67x8jAKTlVoo79pVXDMznibVljpXOn6m35f7cFqD3u78iY5mOANCm9+C4MmWuObc1nM9d0+poopWyg96+LggIAPVKK2KP/eMKg7FlUuW2AFdkI0f1hNCn/7jRp/9F16OMO7YcPYz8bLXtWKUvXvgewLhWSkVTK+7dHt81sOIvaqaIvfLq/zD7My6ZAfwBjieG+VF/GSsAAAAASUVORK5CYII=",
+  "battery_0utput.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAPdJREFUeAHt2TkOgDAMBECD+P+XA0ggIY5QUWDPSGnS7+ZwBAAAAAAAkNMQQFdbnPeGRSQwBfDqmPebPvitMYCyFAAUpgCgMAUAHe3hwd+SfASYAsCDNeS9z/61A7JMA4Ab20l/WVluAMCLcwkIPxSzl4DwQ1HCDwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8LkZUJg64hRsoLQAAAAASUVORK5CYII=",
+  "battery_bg.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAQJJREFUeAHt1skRgDAMBEFD/jlDCODjI213EFNzDajlGRxzDahHBA65BxDLAVCVCzjAAUAwB0BlLmCTA4BgDoDqXMAGBwDBHAAduIBFDgCCOQC6cAELHAAEcwB04gImOQAI5gDoxgVMcAAQzAHQkQv4yQFAMAdAVy7gBwcAwRwAnbmADwJAAiEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADo5gX2cQ0VD08FOgAAAABJRU5ErkJggg==",
+  "battery_cell_empty.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAARtJREFUeAHt3EEKgzAQQNG09D4ukvPnBDlEbtKi4KIiXVmJznsgQvbzEWSSEgAAEMgjAYdrrb3TAEopZhzONA//KEYJEYQw0vCvfkXgmYDbmyOwFwIBgAByzsuzjcArAbfXe9899wUAgQkABCYAEJgAQGACAIEJAATmNyAEUGtd3tM0fZ0LAASwDv52OUgAIABbgXCSK20DqgL8gfsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjvMB3UzNbWiocSEAAAAASUVORK5CYII=",
+  "battery_charging_spark.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAQFJREFUeAHt2jsOhDAMBUB7tfe/MruRQAIaKEiwlBkpTZpUfs4vAgAAAAAAABhs+QtgPmvxLz1D4BNAOa3oMzN6EwBQzKjib8asAtxyLv797j87pIIAgCKuOn8Lg6dD4BtAGaeOf5jPUecC4D3b7f82vALApHp3fgEARdn2w6T8AAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACb1A6ofPfRc/AWyAAAAAElFTkSuQmCC",
+  "battery_idle.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAARhJREFUeAHt3EsKgzAUhtHb0p24NPfpTgR3Yh/UgUU6spL6nwMByTwfAbmpAgAAglwK2F3XdXM1YBxHZxyO9Dz8rWglRBChpcO/+BaBawEJ5vdaEQAI8LgIvFZ9ROBWwOlN07S57wYAwQQAggkABBMACCYAEEwAIJjfgBBgGIbNfQGAAH3fL5+r4SABgAymAuEI/zQNqArwA94DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2M8d8aq9/hc0Uv0AAAAASUVORK5CYII=",
+  "battery_info.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAQVJREFUeAHt1kENxDAQBEHn+GM1hQuFfOwdaapAtPpZHLH3/i8I9yyOEQHS/RZQywEc5gJI5gCgmAO4wAWQygFAMQdwiQsgkQOAYg7gIhdAGgcAxRzAZS6AJA4AijmAAS6AFA4AijmAIS6ABA4AijmAQS6AaQ4AijmAYS6ASQ4AijmAAC6AKQIQRAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgoxdSSTFXra0svwAAAABJRU5ErkJggg=="
+};
+</script>
 
 <script>
 (() => {
@@ -783,7 +811,8 @@
     sBatteryCell.src = active
       ? "UI_F1_Screen/battery_cell_empty.png"
       : "UI_F1_Screen/battery_idle.png";
-    sChargingSpark.hidden = !charging;
+    // no spark on a full battery
+    sChargingSpark.hidden = !charging || full;
     const pctBecameVisible = pctLayers[0].hidden && !charging;
     pctLayers.forEach((l) => { l.hidden = charging; });
     if (pctBecameVisible) positionPctDigits();
@@ -806,8 +835,9 @@
       const hoursLeft = (charge.value / 100) * BATTERY_WH / drain;
       const totalMin = Math.ceil(hoursLeft * 60);
       const h = Math.floor(totalMin / 60);
-      sUntilFull.textContent =
-        `Left: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
+      sUntilFull.textContent = h > 48
+        ? "Left: > 48h"
+        : `Left: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
     } else {
       const volts = watts <= 15 ? 5 : watts <= 27 ? 9 : 12;
       // the battery only receives what the system does not consume;
@@ -816,18 +846,22 @@
       const shownW = intoBattery > 9
         ? Math.round(intoBattery)
         : parseFloat(intoBattery.toFixed(2));
-      sInputText.textContent = full ? "Fully charged" : `Charging: ${volts}V ${shownW}W`;
+      sInputText.textContent = full ? "Fully charged!" : `Charging: ${volts}V ${shownW}W`;
       sInputText.classList.toggle("fully", full);
+      // when the shown watts actually carry fractions the line is
+      // longer, so the plate/text layout switches
+      sInfoGroup.classList.toggle("lowpow", !Number.isInteger(shownW));
       if (full) {
         sUntilFull.textContent = "";
       } else if (intoBattery > 0) {
         const hoursLeft = (1 - charge.value / 100) * BATTERY_WH / intoBattery;
         const totalMin = Math.ceil(hoursLeft * 60);
         const h = Math.floor(totalMin / 60);
-        sUntilFull.textContent =
-          `Untill full: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
+        sUntilFull.textContent = h >= 100
+          ? "Untill full: ∞"
+          : `Untill full: ${h > 0 ? h + "h " : ""}${totalMin % 60}m`;
       } else {
-        sUntilFull.textContent = "Untill full: --";
+        sUntilFull.textContent = "Untill full: ∞";
       }
     }
     // the Power OFF countdown is hidden while the info UI is up
@@ -952,6 +986,177 @@
   updateUsage();
   // re-measure the percent text once the pixel font is loaded
   document.fonts.ready.then(updateCharge);
+
+  // ---------- copy the screen as a white 256x144 reference PNG ----------
+  const copyBtn = document.getElementById("copyBtn");
+  const refImages = {};
+
+  function refImage(src) {
+    const name = decodeURIComponent(src).split("/").pop();
+    if (!refImages[name]) {
+      const im = new Image();
+      im.src = window.SCREEN_ASSETS[name];
+      refImages[name] = im;
+    }
+    return refImages[name];
+  }
+
+  function isShown(el) {
+    if (el.hidden) return false;
+    const cs = getComputedStyle(el);
+    return cs.display !== "none" && cs.visibility !== "hidden";
+  }
+
+  function parseColor(c) {
+    const m = c.match(/rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)/);
+    return m ? [+m[1], +m[2], +m[3]] : [0, 0, 0];
+  }
+
+  async function renderReference() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 144;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, 256, 144);
+
+    const sr = screenEl.getBoundingClientRect();
+    const k = sr.width / 256;
+    const rel = (r) => ({
+      x: Math.round((r.left - sr.left) / k),
+      y: Math.round((r.top - sr.top) / k),
+      w: Math.round(r.width / k),
+      h: Math.round(r.height / k),
+    });
+
+    // text is rasterized on a side canvas and binarized: no antialiasing
+    function drawPixelText(text, x, baselineY, cssColor, font) {
+      const tmp = document.createElement("canvas");
+      tmp.width = 256;
+      tmp.height = 144;
+      const tc = tmp.getContext("2d");
+      tc.font = font;
+      tc.fillText(text, x, baselineY);
+      const img = tc.getImageData(0, 0, 256, 144);
+      const [cr, cg, cb] = parseColor(cssColor);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] >= 128) {
+          d[i] = cr; d[i + 1] = cg; d[i + 2] = cb; d[i + 3] = 255;
+        } else {
+          d[i + 3] = 0;
+        }
+      }
+      tc.putImageData(img, 0, 0);
+      ctx.drawImage(tmp, 0, 0);
+    }
+
+    // draws every text node of an element, honoring per-span color/offset
+    function drawTextNodes(el) {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        if (!n.textContent) continue;
+        const range = document.createRange();
+        range.selectNode(n);
+        const r = rel(range.getBoundingClientRect());
+        const cs = getComputedStyle(n.parentElement);
+        const ascent = cs.fontFamily.includes("Born2bSporty") ? 13 : 9;
+        drawPixelText(n.textContent, r.x, r.y + ascent, cs.color,
+          `${cs.fontSize} ${cs.fontFamily}`);
+      }
+    }
+
+    async function paint(el) {
+      if (!isShown(el)) return;
+      if (el.tagName === "IMG") {
+        const im = refImage(el.src);
+        await im.decode();
+        const r = rel(el.getBoundingClientRect());
+        ctx.drawImage(im, r.x, r.y, r.w, r.h);
+        return;
+      }
+      if (["S_rect", "S_rect_top", "S_rect_bottom"].includes(el.id)) {
+        const r = rel(el.getBoundingClientRect());
+        ctx.fillStyle = "#000";
+        ctx.fillRect(r.x, r.y, r.w, r.h);
+        return;
+      }
+      if (["S_info_group", "S_info_content", "S_battery_stat"].includes(el.id)) {
+        for (const c of el.children) await paint(c);
+        return;
+      }
+      if (el.classList.contains("pct-layer")) {
+        const white = el.id === "S_pct_white";
+        if (white) {
+          const rs = rel(sRect.getBoundingClientRect());
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(rs.x, rs.y - 1, rs.w, rs.h + 2);
+          ctx.clip();
+        }
+        drawTextNodes(el);
+        if (white) ctx.restore();
+        return;
+      }
+      drawTextNodes(el);
+    }
+
+    for (const el of screenEl.children) await paint(el);
+    return canvas;
+  }
+
+  copyBtn.addEventListener("click", async () => {
+    try {
+      await document.fonts.ready;
+      const canvas = await renderReference();
+      const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      copyBtn.textContent = "Copied!";
+    } catch (e) {
+      copyBtn.textContent = "Copy failed: " + e.message;
+    }
+    setTimeout(() => { copyBtn.textContent = "Copy UI as PNG reference"; }, 1500);
+  });
+
+  // preset state via URL params (testing/screenshots),
+  // e.g. ?in=36&dir=in&pd=1&chg=38&use=0.89&err=0
+  const qp = new URLSearchParams(location.search);
+  if (qp.size) {
+    if (qp.has("chg")) charge.value = qp.get("chg");
+    if (qp.has("use")) usage.value = qp.get("use");
+    if (qp.has("in")) desiredWatts = +qp.get("in");
+    if (qp.has("dir")) {
+      usbc1Dir = qp.get("dir");
+      document.querySelectorAll("#dirSeg button").forEach((b) =>
+        b.classList.toggle("active", b.dataset.value === usbc1Dir));
+    }
+    if (qp.has("pd")) {
+      pdCheck.checked = qp.get("pd") === "1";
+      document.querySelectorAll("#pdSeg button").forEach((b) =>
+        b.classList.toggle("active", (b.dataset.value === "on") === pdCheck.checked));
+    }
+    if (qp.has("err")) {
+      errorState = qp.get("err") === "1";
+      errorBtn.classList.toggle("active", errorState);
+    }
+    updateLimiter();
+    updateCharge();
+    // headless helper: replace the page with the reference canvas
+    if (qp.has("refshot")) {
+      setTimeout(async () => {
+        // entrance animations may not have finished: force the end state
+        plateShown = true;
+        updateUsbc1();
+        document.getAnimations().forEach((a) => a.finish());
+        const c = await renderReference();
+        document.body.replaceChildren(c);
+        document.body.style.cssText =
+          "display:block;background:#fff;margin:0;overflow:hidden;min-height:0";
+        c.style.display = "block";
+      }, 800);
+    }
+  }
 
   // "Power OFF" countdown
   let powerOffSeconds = 2 * 3600 + 10 * 60 + 10;
