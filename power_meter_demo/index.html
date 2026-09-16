@@ -706,8 +706,10 @@ window.SCREEN_ASSETS = {
     const watts = usbc1Dir === "in" ? +usbc1.value : 0;
     plugLayer.classList.toggle("on", watts > 0 && pdCheck.checked);
     plugYellowLayer.classList.toggle("on", watts > 0 && !pdCheck.checked);
-    // a full battery shows the plug only, no charging chevrons
-    const chevronsOn = !errorState && +charge.value < 100;
+    // an idle full battery shows the plug only; with power usage the
+    // energy flows through, so the chevrons are back
+    const chevronsOn =
+      !errorState && (+charge.value < 100 || +usage.value > 0);
     chg1Layer.classList.toggle("on", chevronsOn && watts > 0);
     chg2Layer.classList.toggle("on", chevronsOn && watts > 7.5);
     chg3Layer.classList.toggle("on", chevronsOn && watts > 15);
