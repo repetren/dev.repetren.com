@@ -675,17 +675,21 @@ window.SCREEN_ASSETS = {
   }
 
   // in OUT mode the slider scale is piecewise: raw 0..100 maps to
-  // 0.00..1.00W in hundredths, raw 101..135 maps to 2..36W whole
+  // 0.00..1.00W in hundredths (~5% of the track), the rest is whole
+  // watts, 54 raw units per watt
+  const OUT_RAW_PER_W = 54;
   function sliderMax() {
-    return usbc1Dir === "out" ? 135 : 36;
+    return usbc1Dir === "out" ? 100 + 35 * OUT_RAW_PER_W : 36;
   }
   function rawToW(raw) {
     if (usbc1Dir !== "out") return raw;
-    return raw <= 100 ? raw / 100 : raw - 99;
+    if (raw <= 100) return raw / 100;
+    return 1 + Math.round((raw - 100) / OUT_RAW_PER_W);
   }
   function wToRaw(w) {
     if (usbc1Dir !== "out") return w;
-    return w <= 1 ? Math.round(w * 100) : Math.round(w) + 99;
+    if (w <= 1) return Math.round(w * 100);
+    return 100 + Math.round(w - 1) * OUT_RAW_PER_W;
   }
   function formatW(w) {
     return parseFloat(w.toFixed(2)) + "W";
