@@ -660,7 +660,7 @@ window.SCREEN_ASSETS = {
   );
 
   function placeLimiter(el, watts) {
-    const frac = watts / (usbc1.max - usbc1.min);
+    const frac = wToRaw(watts) / sliderMax();
     // thumb center travels within [thumb/2, width - thumb/2]
     const t = THUMB();
     el.style.left = `calc(${t / 2}px + ${frac} * (100% - ${t}px))`;
@@ -674,19 +674,38 @@ window.SCREEN_ASSETS = {
     return pdCheck.checked ? MAX_W : PD_LIMIT;
   }
 
+  // in OUT mode the slider scale is piecewise: raw 0..100 maps to
+  // 0.00..1.00W in hundredths, raw 101..135 maps to 2..36W whole
+  function sliderMax() {
+    return usbc1Dir === "out" ? 135 : 36;
+  }
+  function rawToW(raw) {
+    if (usbc1Dir !== "out") return raw;
+    return raw <= 100 ? raw / 100 : raw - 99;
+  }
+  function wToRaw(w) {
+    if (usbc1Dir !== "out") return w;
+    return w <= 1 ? Math.round(w * 100) : Math.round(w) + 99;
+  }
+  function formatW(w) {
+    return parseFloat(w.toFixed(2)) + "W";
+  }
+
   function updateUsbc1() {
-    usbc1.value = Math.min(desiredWatts, Math.floor(currentLimit()));
-    usbc1Value.textContent = usbc1.value + "W";
+    usbc1.max = sliderMax();
+    const shownW = Math.min(desiredWatts, currentLimit());
+    usbc1.value = wToRaw(shownW);
+    usbc1Value.textContent = formatW(shownW);
     const pct = (usbc1.value - usbc1.min) / (usbc1.max - usbc1.min) * 100;
     usbc1.style.setProperty("--fill", pct + "%");
     // plug and chevrons indicate incoming power only, never in OUT mode
     const watts = usbc1Dir === "in" ? +usbc1.value : 0;
     plugLayer.classList.toggle("on", watts > 0 && pdCheck.checked);
     plugYellowLayer.classList.toggle("on", watts > 0 && !pdCheck.checked);
-    chg1Layer.classList.toggle("on", !errorState && watts > 1);
-    chg2Layer.classList.toggle("on", !errorState && watts >= 7.5);
-    chg3Layer.classList.toggle("on", !errorState && watts >= 15);
-    chg4Layer.classList.toggle("on", !errorState && watts >= 27);
+    chg1Layer.classList.toggle("on", !errorState && watts >= 7.5);
+    chg2Layer.classList.toggle("on", !errorState && watts >= 15);
+    chg3Layer.classList.toggle("on", !errorState && watts >= 27);
+    chg4Layer.classList.toggle("on", !errorState && watts >= 36);
     updateUsage();
   }
 
@@ -785,7 +804,7 @@ window.SCREEN_ASSETS = {
     // ticks 1-4 stack; above 8W the pre-rendered 5/6/7 replace them
     // in OUT mode the port powers an external load: nothing comes in,
     // and its watts simply add to the system consumption
-    const rawWatts = +usbc1.value;
+    const rawWatts = rawToW(+usbc1.value);
     const watts = usbc1Dir === "in" ? rawWatts : 0;
     const usageW = +usage.value + (usbc1Dir === "out" ? rawWatts : 0);
     const full = +charge.value === 100;
@@ -794,7 +813,7 @@ window.SCREEN_ASSETS = {
     sUsbc1Status.hidden = rawWatts === 0;
     sUsbc1Status.innerHTML =
       `USB-C1: ${pdCheck.checked ? "PD ver2" : '<span class="no-pd"><span class="x-down">×</span> PD</span>'} ` +
-      `${portVolts}V/${rawWatts}W`;
+      `${portVolts}V/${formatW(rawWatts)}`;
     // actually charging: plugged in and the input covers consumption;
     // the error state kills all charging UI
     const charging = watts > 0 && usageW <= watts && !errorState;
@@ -923,6 +942,9 @@ window.SCREEN_ASSETS = {
   }
   wireSeg("dirSeg", (v) => {
     usbc1Dir = v;
+    // IN mode has no fractional watts
+    if (v === "in") desiredWatts = Math.round(desiredWatts);
+    updateLimiter();
     updateUsbc1();
   });
   wireSeg("pdSeg", (v) => {
@@ -937,7 +959,7 @@ window.SCREEN_ASSETS = {
     updateUsbc1();
   });
   usbc1.addEventListener("input", () => {
-    desiredWatts = Math.min(+usbc1.value, Math.floor(currentLimit()));
+    desiredWatts = Math.min(rawToW(+usbc1.value), currentLimit());
     updateUsbc1();
   });
   charge.addEventListener("input", updateCharge);
