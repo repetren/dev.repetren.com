@@ -106,6 +106,10 @@
   }
   #S_rect_top { top: 5px; }
   #S_rect_bottom { top: 17px; }
+  /* on the black plate the fill turns white and the digits invert */
+  #S_rect.inv, #S_rect_top.inv, #S_rect_bottom.inv { background: #fff; }
+  #S_pct_black.inv { color: #fff; }
+  #S_pct_white.inv { color: #000; }
   .pct-layer {
     position: absolute;
     inset: 0;
@@ -121,7 +125,22 @@
     white-space: nowrap;
   }
   #S_pct_white { color: #fff; }
-  #S_power_off, #S_discharge, #S_version {
+  #S_power_off {
+    position: absolute;
+    inset: 0;
+  }
+  #S_power_off_time {
+    position: absolute;
+    left: 10px;
+    top: 15px;
+    font-family: "HaxrCorp4090", monospace;
+    font-size: 16px;
+    line-height: 1;
+    color: #000;
+    white-space: nowrap;
+    -webkit-font-smoothing: none;
+  }
+  #S_discharge, #S_version {
     position: absolute;
     left: 5px;
     top: 4px;
@@ -152,21 +171,76 @@
     top: 1px;
   }
   .no-pd {
-    color: #D4D4D4;
+    color: #696969;
   }
+  #S_usbc1_status[hidden] { display: none; }
   #S_usbc1_status {
     position: absolute;
     right: 5px;
-    top: 32px;
+    top: 28px;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
     font-family: "HaxrCorp4090", monospace;
     font-size: 16px;
     line-height: 1;
-    color: #AAAAAA;
+    color: #696969;
     white-space: nowrap;
     -webkit-font-smoothing: none;
   }
-  #S_battery_bg, #S_info_group {
+  /* text in a box: 5px side / 3px vertical padding around the glyphs,
+     pixel-rounded corners (steps 3-2-1) */
+  .sbox {
+    position: absolute;
+    height: 11px;
+    padding: 1px 5px 0;
+    background: #AAAAAA;
+    color: #fff;
+    font-family: "HaxrCorp4090", monospace;
+    font-size: 16px;
+    line-height: 1;
+    white-space: nowrap;
+    -webkit-font-smoothing: none;
+    clip-path: polygon(
+      2px 0, calc(100% - 2px) 0,
+      calc(100% - 2px) 1px, calc(100% - 1px) 1px,
+      calc(100% - 1px) 2px, 100% 2px,
+      100% calc(100% - 2px), calc(100% - 1px) calc(100% - 2px),
+      calc(100% - 1px) calc(100% - 1px), calc(100% - 2px) calc(100% - 1px),
+      calc(100% - 2px) 100%, 2px 100%,
+      2px calc(100% - 1px), 1px calc(100% - 1px),
+      1px calc(100% - 2px), 0 calc(100% - 2px),
+      0 2px, 1px 2px, 1px 1px, 2px 1px
+    );
+  }
+  .sbox > span {
+    position: relative;
+    top: -3px;
+  }
+  .sbox.inline {
+    position: relative;
+    top: 2px;
+  }
+  #S_bg_group, #S_info_group {
     visibility: hidden;
+  }
+  #S_bg_group {
+    /* one shift value drives the plate; v002 is pre-widened, so the
+       wide (fractional percent) state is the unshifted image */
+    --bg-shift: 0px;
+    position: absolute;
+    inset: 0;
+  }
+  /* at 100% the percent has no hundredths, the plate shrinks back */
+  #S_bg_group.full { --bg-shift: 18px; }
+  #S_bg_group.shift { --bg-shift: 43px; }
+  #S_battery_bg {
+    margin-left: var(--bg-shift);
+    /* fixed size: the group narrows while its entrance animation runs,
+       a 100% width would squeeze the image */
+    width: 256px;
+    height: 144px;
+    right: auto;
   }
   #S_info_group {
     position: absolute;
@@ -182,22 +256,22 @@
     height: 144px;
   }
   /* charging layout, power >= 10W (whole watts): 7px right of lowpow */
-  #S_info_group:not(.shift) #S_info_content { left: 3px; }
+  #S_info_group:not(.shift) #S_info_content { left: -15px; }
   #S_info_group:not(.shift) #S_battery_info { left: -5px; }
   #S_info_group:not(.shift) #S_input_text { left: 90px; }
   /* charging layout, power < 10W (fractional watts, longer line) */
-  #S_info_group.lowpow:not(.shift) #S_info_content { left: -5px; }
+  #S_info_group.lowpow:not(.shift) #S_info_content { left: -23px; }
   #S_info_group.lowpow:not(.shift) #S_battery_info { left: -5px; }
   #S_info_group.lowpow:not(.shift) #S_input_text { left: 90px; }
   #S_info_group.lowpow:not(.shift) #S_until_full { left: 95px; }
+  /* at 100% the bg plate shrinks back, the info plate follows */
+  #S_info_group.full:not(.shift) #S_info_content { left: 3px; }
   /* output (discharging) layout */
-  #S_info_group.shift #S_info_content { left: 30px; }
+  #S_info_group.shift #S_info_content { left: 39px; }
   #S_info_group.shift #S_battery_stat { left: 3px; }
   /* Output line staggered 5px left of the Left line, same as
      Charging vs Untill */
   #S_info_group.shift #S_input_text { left: 93px; }
-  #S_battery_bg { margin-left: -1px; } /* charging position */
-  #S_battery_bg.shift { margin-left: 15px; }
   #S_battery_stat {
     position: absolute;
     inset: 0;
@@ -232,7 +306,7 @@
     white-space: nowrap;
     -webkit-font-smoothing: none;
   }
-  #S_battery_bg.in, #S_info_group.in {
+  #S_bg_group.in, #S_info_group.in {
     visibility: visible;
     /* animate `left` in 84 whole-pixel steps: unlike transform it is
        re-rendered on the pixel grid every step, so nothing blurs */
@@ -550,7 +624,9 @@
         </div>
       </div>
     </div>
-    <img id="S_battery_bg" src="UI_F1_Screen/battery_bg.png" alt="">
+    <div id="S_bg_group">
+      <img id="S_battery_bg" src="UI_F1_Screen/battery_bg_v002.png" alt="">
+    </div>
     <img id="S_battery_cell" src="UI_F1_Screen/battery_idle.png" alt="">
     <img id="S_buttons" src="UI_F1_Screen/Buttons_all.png" alt="">
     <div id="S_rect"></div>
@@ -558,8 +634,10 @@
     <div id="S_rect_bottom"></div>
     <img id="S_charging_spark" src="UI_F1_Screen/battery_charging_spark.png" alt="" hidden>
     <div id="S_charge_pct" hidden>50%</div>
-    <img id="S_battery_output" src="UI_F1_Screen/battery_0utput.png" alt="" hidden>
-    <div id="S_power_off">Power OFF in: 2h 10m 10s</div>
+    <div id="S_power_off">
+      <div class="sbox" style="left: 5px; top: 5px"><span>Auto Power OFF</span></div>
+      <div id="S_power_off_time">in 2h 10m 10s</div>
+    </div>
     <div id="S_version">0.1.0 88f88s88 /gui-test</div>
     <div id="S_usbc1_status" hidden>USB-C1 Power IN: no PD, 5V/4W</div>
     <div class="pct-layer" id="S_pct_black"><span></span></div>
@@ -597,7 +675,7 @@
       <label for="charge">Battery</label>
       <span class="value" id="chargeValue">50%</span>
     </div>
-    <input type="range" id="charge" min="0" max="100" step="1" value="50">
+    <input type="range" id="charge" min="0" max="100" step="0.01" value="50">
     <div class="bounds"><span>0%</span><span>100%</span></div>
   </div>
 
@@ -620,10 +698,11 @@
 <script>
 // screen UI assets inlined so the reference canvas is never tainted
 window.SCREEN_ASSETS = {
-  "Buttons_all.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAiNJREFUeAHt2u1ugyAUAFBc9v6v7LIfTVoCAlUq0HOSJasfgAKXy9YQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhrIFZreH+xlH8GF7GGPy/xupLbC8USebIDCZb0ndZh2Yqf7Zw9j9lmvfSn3ARGZelfbKYyOZsc1HZDUTm73z9sLn1PXPP3dpbffoBIEJrTjoagJAy/W9rJYF/FsyCPwEYi2T6JOD4uzeP84Kan9PfS499xbefzctGcxRX1m1K/wGRnRmsj8P/C1RXm3ZuXvebdcWynXH58+8B3+8qyAAtHlMri1zPHXuqnpry72y/jOraM2ErykjbssWfd7Da8axR3XvhfJSZX5N8BAA0nJ72KNVtHWFPap7lAF4dTtKQSE3YVPvPi7rqOz43ri8EMZ67x8jAKTlVoo79pVXDMznibVljpXOn6m35f7cFqD3u78iY5mOANCm9+C4MmWuObc1nM9d0+poopWyg96+LggIAPVKK2KP/eMKg7FlUuW2AFdkI0f1hNCn/7jRp/9F16OMO7YcPYz8bLXtWKUvXvgewLhWSkVTK+7dHt81sOIvaqaIvfLq/zD7My6ZAfwBjieG+VF/GSsAAAAASUVORK5CYII=",
+  "battery_bg_v002.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAQBJREFUeAHt1sENgEAMA8GD/nuGCniSWPJMEau9DvzvOUS6DswQgUD3AWo5ACa5gDAOAIo5AKa5gCAOAIo5ADa4gBAOAIo5ALa4gAAOAIo5ADa5gGUOAIo5ALa5gEUOAIo5ABK4gCUOAIo5AFK4gAUOAIo5AJK4gGEOAIo5ANK4gEECQCohAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4NsLztENFbKNMQgAAAAASUVORK5CYII=",
+  "Buttons_all.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAiNJREFUeAHt29FugyAUAFBc9v+/zLKHJo4gohMFPCdphlKLDriAtSEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjGYJjC6GZ2lD8IAYnu/8IfRzHvAaPXY4QQBuEAv7168nCAKD+Q7MZL0ej8H6HKYSD+TFJB0LebXH1MwuzAIGYgYwl3XnW1b7cum9z8kdY0YxGQFgHDWd98oOenYkX4LlxzBmDwCjTkd76DwtzkF9cJuR16JxZ7vmmDQvFvbt5Ydw/P955hp65b7GYEavsBk6z0wB4JcgMAidvx+CQOe+Ah9HGqvRoK0jDzTtff3Jy5yt9B4CwBMjZusyjl5T6/f/hxnAS22NRkdGqt6MMj1Pn27MjfA1f0s3OksPQDGY/8wA0lcIdQ0uTZ8tv7R9pViRblVebjv3/q3OXkpv5Z3Zt3VeU/Eg0F/paJNLz6bH77i3ftPQuh5e9xCTJUCdZfVqIW10szXCT8fa2l6LO5/Tsh4+ZbxmCWAGsG/dIHINr5TXq9xI10vQyQWLdP8V55nr6CPWJYk7o/cVZd259s+Vna61W5dX2n5K7Xm4B8BU3j7SGfEnNFKU7nVEbGnka56ufn4AGYWzoMTh4bgAAAAASUVORK5CYII=",
   "battery_0utput.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAPdJREFUeAHt2TkOgDAMBECD+P+XA0ggIY5QUWDPSGnS7+ZwBAAAAAAAkNMQQFdbnPeGRSQwBfDqmPebPvitMYCyFAAUpgCgMAUAHe3hwd+SfASYAsCDNeS9z/61A7JMA4Ab20l/WVluAMCLcwkIPxSzl4DwQ1HCDwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8LkZUJg64hRsoLQAAAAASUVORK5CYII=",
   "battery_bg.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAQJJREFUeAHt1skRgDAMBEFD/jlDCODjI213EFNzDajlGRxzDahHBA65BxDLAVCVCzjAAUAwB0BlLmCTA4BgDoDqXMAGBwDBHAAduIBFDgCCOQC6cAELHAAEcwB04gImOQAI5gDoxgVMcAAQzAHQkQv4yQFAMAdAVy7gBwcAwRwAnbmADwJAAiEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADo5gX2cQ0VD08FOgAAAABJRU5ErkJggg==",
-  "battery_cell_empty.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAARtJREFUeAHt3EEKgzAQQNG09D4ukvPnBDlEbtKi4KIiXVmJznsgQvbzEWSSEgAAEMgjAYdrrb3TAEopZhzONA//KEYJEYQw0vCvfkXgmYDbmyOwFwIBgAByzsuzjcArAbfXe9899wUAgQkABCYAEJgAQGACAIEJAATmNyAEUGtd3tM0fZ0LAASwDv52OUgAIABbgXCSK20DqgL8gfsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjvMB3UzNbWiocSEAAAAASUVORK5CYII=",
+  "battery_cell_empty.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAcJJREFUeAHt27FqwkAABuCLdG6zVTtIBhcnB/GZxCcSZxefwhdQwUdwsu3oVhBpc1KLLehQUhq874OQkOmW+++S4w8BAEhPFoCqZe12O280Gu/hn202m115uzgOAQDVyvr9fnMymWxDDYxGo9ZisXgNV0IAqEY2GAyay+UyTrZaXHEsZSC1gsUe/lZRFHmdJn84C4Fut9vqdDr34UcQNAJQiTzPQ11Np9PtbDbblTuUx3AWAgIAElB+Bhyv8Xj8HH9Qnt7fBeDmlacBX8/npxN2AJAwAQAJEwCQMAEACRMAkDABAAlzDAgJmM/nx3uv1/v2XgBAAk4TfzgcPn02BI8EAFTkcDjUtnATW4H7/f5tvV5frQcDv5fF0k3d2oCxoRgutAFVBKFaMQSasXwTaiBu+Ver1Uu4sOoLAKheVhTFQx3agbb8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAN+QBwaMCbRx1CXQAAAABJRU5ErkJggg==",
   "battery_charging_spark.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAQFJREFUeAHt2jsOhDAMBUB7tfe/MruRQAIaKEiwlBkpTZpUfs4vAgAAAAAAABhs+QtgPmvxLz1D4BNAOa3oMzN6EwBQzKjib8asAtxyLv797j87pIIAgCKuOn8Lg6dD4BtAGaeOf5jPUecC4D3b7f82vALApHp3fgEARdn2w6T8AAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACb1A6ofPfRc/AWyAAAAAElFTkSuQmCC",
   "battery_idle.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAARhJREFUeAHt3EsKgzAUhtHb0p24NPfpTgR3Yh/UgUU6spL6nwMByTwfAbmpAgAAglwK2F3XdXM1YBxHZxyO9Dz8rWglRBChpcO/+BaBawEJ5vdaEQAI8LgIvFZ9ROBWwOlN07S57wYAwQQAggkABBMACCYAEEwAIJjfgBBgGIbNfQGAAH3fL5+r4SABgAymAuEI/zQNqArwA94DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2M8d8aq9/hc0Uv0AAAAASUVORK5CYII=",
   "battery_info.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAACQCAYAAADnY7WRAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAQVJREFUeAHt1kENxDAQBEHn+GM1hQuFfOwdaapAtPpZHLH3/i8I9yyOEQHS/RZQywEc5gJI5gCgmAO4wAWQygFAMQdwiQsgkQOAYg7gIhdAGgcAxRzAZS6AJA4AijmAAS6AFA4AijmAIS6ABA4AijmAQS6AaQ4AijmAYS6ASQ4AijmAAC6AKQIQRAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgoxdSSTFXra0svwAAAABJRU5ErkJggg=="
@@ -731,18 +810,18 @@ window.SCREEN_ASSETS = {
   const dischargeEl = document.getElementById("S_discharge");
   const sBatteryCell = document.getElementById("S_battery_cell");
   const sChargingSpark = document.getElementById("S_charging_spark");
-  const sBatteryBg = document.getElementById("S_battery_bg");
+  const sBgGroup = document.getElementById("S_bg_group");
   const sInfoGroup = document.getElementById("S_info_group");
   const sInputText = document.getElementById("S_input_text");
   const sUntilFull = document.getElementById("S_until_full");
   const powerOffEl = document.getElementById("S_power_off");
+  const powerOffTimeEl = document.getElementById("S_power_off_time");
   const BATTERY_WH = 7.2 * 3.7; // 7200 mAh at 3.7V nominal = 26.64 Wh
   const sChargePct = document.getElementById("S_charge_pct");
-  const sBatteryOutput = document.getElementById("S_battery_output");
   const sUsbc1Status = document.getElementById("S_usbc1_status");
   let wasActive = false; // charging or discharging UI is on
   let plateShown = false; // plate contents appear only after it slid in
-  sBatteryBg.addEventListener("animationend", () => {
+  sBgGroup.addEventListener("animationend", () => {
     plateShown = true;
     updateUsbc1();
   });
@@ -759,7 +838,7 @@ window.SCREEN_ASSETS = {
   const BATT_X = 214, BATT_Y_TOP = 5, BATT_Y_BOTTOM = 18, BATT_W = 34;
 
   function updateCharge() {
-    chargeValue.textContent = charge.value + "%";
+    chargeValue.textContent = parseFloat((+charge.value).toFixed(2)) + "%";
     const pct = (charge.value - charge.min) / (charge.max - charge.min) * 100;
     charge.style.setProperty("--fill", pct + "%");
     // battery fill on the device screen: 34px = 100%, whole pixels;
@@ -782,7 +861,8 @@ window.SCREEN_ASSETS = {
   // element is 0 and the centering breaks
   function positionPctDigits() {
     const fillW = Math.ceil(+charge.value / 100 * 34);
-    pctSpans.forEach((s) => { s.textContent = charge.value; });
+    // digits inside the battery stay whole
+    pctSpans.forEach((s) => { s.textContent = Math.round(+charge.value); });
     // a hidden layer measures as 0 wide: unhide just for the measurement
     const wasHidden = pctLayers[0].hidden;
     if (wasHidden) pctLayers.forEach((l) => { l.hidden = false; });
@@ -820,8 +900,8 @@ window.SCREEN_ASSETS = {
     const portVolts = rawWatts <= 15 ? 5 : rawWatts <= 27 ? 9 : 12;
     sUsbc1Status.hidden = rawWatts === 0;
     sUsbc1Status.innerHTML =
-      `USB-C1: ${pdCheck.checked ? "PD ver2" : '<span class="no-pd"><span class="x-down">×</span> PD</span>'} ` +
-      `${portVolts}V/${formatW(rawWatts)}`;
+      `<span>USB-C1 ${usbc1Dir.toUpperCase()}: ${pdCheck.checked ? "PD Ver2" : '<span class="no-pd"><span class="x-down">×</span>PD</span>'}</span>` +
+      `<span class="sbox inline"><span>${portVolts}V/${formatW(rawWatts)}</span></span>`;
     // actually charging: plugged in and the input covers consumption;
     // the error state kills all charging UI
     const charging = watts > 0 && usageW <= watts && !errorState;
@@ -838,6 +918,9 @@ window.SCREEN_ASSETS = {
     sBatteryCell.src = active
       ? "UI_F1_Screen/battery_cell_empty.png"
       : "UI_F1_Screen/battery_idle.png";
+    // on the black plate the fill goes white and the digits invert
+    [sRect, sRectTop, sRectBottom, pctLayers[0], pctLayers[1]]
+      .forEach((el) => el.classList.toggle("inv", active));
     // no spark on a full battery
     sChargingSpark.hidden = !charging || full;
     const pctBecameVisible = pctLayers[0].hidden && !charging;
@@ -845,9 +928,13 @@ window.SCREEN_ASSETS = {
     if (pctBecameVisible) positionPctDigits();
     // on the bg plate: charge percent when charging, output icon otherwise
     sChargePct.hidden = !(charging && plateShown);
-    sChargePct.textContent = charge.value + "%";
-    sBatteryOutput.hidden = !(discharging && plateShown);
-    sBatteryBg.classList.toggle("shift", discharging);
+    // while charging the percent shows hundredths, e.g. 38.00%;
+    // a full battery is plain 100%
+    sChargePct.textContent =
+      full ? "100%" : (+charge.value).toFixed(2) + "%";
+    sBgGroup.classList.toggle("shift", discharging);
+    sBgGroup.classList.toggle("full", full);
+    sInfoGroup.classList.toggle("full", full);
     sInfoGroup.classList.toggle("shift", discharging);
     // info strip lines
     if (discharging) {
@@ -895,16 +982,16 @@ window.SCREEN_ASSETS = {
     powerOffEl.hidden = active;
     if (active && !wasActive) {
       plateShown = false;
-      sBatteryBg.classList.remove("in");
+      sBgGroup.classList.remove("in");
       sInfoGroup.classList.remove("in");
       dischargeEl.classList.remove("out");
-      void sBatteryBg.offsetWidth; // restart the animations
-      sBatteryBg.classList.add("in");
+      void sBgGroup.offsetWidth; // restart the animations
+      sBgGroup.classList.add("in");
       sInfoGroup.classList.add("in");
       dischargeEl.classList.add("out");
     } else if (!active) {
       plateShown = false;
-      sBatteryBg.classList.remove("in");
+      sBgGroup.classList.remove("in");
       sInfoGroup.classList.remove("in");
       dischargeEl.classList.remove("out");
     }
@@ -1108,12 +1195,31 @@ window.SCREEN_ASSETS = {
       }
       if (["S_rect", "S_rect_top", "S_rect_bottom"].includes(el.id)) {
         const r = rel(el.getBoundingClientRect());
-        ctx.fillStyle = "#000";
+        ctx.fillStyle = getComputedStyle(el).backgroundColor;
         ctx.fillRect(r.x, r.y, r.w, r.h);
         return;
       }
-      if (["S_info_group", "S_info_content", "S_battery_stat"].includes(el.id)) {
+      if (["S_info_group", "S_info_content", "S_battery_stat", "S_power_off", "S_usbc1_status", "S_bg_group"].includes(el.id)) {
         for (const c of el.children) await paint(c);
+        return;
+      }
+      if (el.classList.contains("sbox")) {
+        const r = rel(el.getBoundingClientRect());
+        ctx.fillStyle = getComputedStyle(el).backgroundColor;
+        // pixel-rounded box, corner steps 2-1
+        ctx.beginPath();
+        const p = [
+          [2, 0], [r.w - 2, 0], [r.w - 2, 1], [r.w - 1, 1], [r.w - 1, 2],
+          [r.w, 2], [r.w, r.h - 2], [r.w - 1, r.h - 2],
+          [r.w - 1, r.h - 1], [r.w - 2, r.h - 1], [r.w - 2, r.h], [2, r.h],
+          [2, r.h - 1], [1, r.h - 1], [1, r.h - 2], [0, r.h - 2],
+          [0, 2], [1, 2], [1, 1], [2, 1],
+        ];
+        p.forEach(([px2, py], i) =>
+          i ? ctx.lineTo(r.x + px2, r.y + py) : ctx.moveTo(r.x + px2, r.y + py));
+        ctx.closePath();
+        ctx.fill();
+        drawTextNodes(el);
         return;
       }
       if (el.classList.contains("pct-layer")) {
@@ -1194,8 +1300,8 @@ window.SCREEN_ASSETS = {
     const h = Math.floor(powerOffSeconds / 3600);
     const m = Math.floor((powerOffSeconds % 3600) / 60);
     const s = powerOffSeconds % 60;
-    powerOffEl.textContent =
-      `Power OFF in: ${h > 0 ? h + "h " : ""}${m}m ${s}s`;
+    powerOffTimeEl.textContent =
+      `in ${h > 0 ? h + "h " : ""}${m}m ${s}s`;
   }
   setInterval(() => {
     if (powerOffSeconds > 0) {
