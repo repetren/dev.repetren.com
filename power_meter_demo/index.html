@@ -1064,8 +1064,8 @@ window.SCREEN_ASSETS = {
     const SEA_MIN = 30;
     if (charging && !full && watts > usageW) {
       seaSpeed = Math.max(Math.min((watts - usageW) / 36, 1) * 100, SEA_MIN);
-    } else if (usageW > watts) {
-      seaSpeed = -Math.max(Math.min((usageW - watts) / 60, 1) * 100, SEA_MIN);
+    } else if (discharging) {
+      seaSpeed = -Math.max(Math.min(excess / 60, 1) * 100, SEA_MIN);
     } else {
       seaSpeed = 0;
     }
